@@ -1,0 +1,44 @@
+{
+  "name": "logseq-tabsdb-plugin",
+  "author": "benjypng",
+  "description": "",
+  "license": "MIT",
+  "logseq": {
+    "id": "logseq-tabsdb-plugin",
+    "title": "logseq-tabsdb-plugin",
+    "icon": "./icon.svg",
+    "main": "dist/index.html"
+  },
+  "scripts": {
+    "dev": "bunx vite",
+    "build": "bunx vite build",
+    "prepare": "husky",
+    "lint:precommit": "echo \"Running biome\" && bunx @biomejs/biome check --write . && echo \"Running tsc\" && tsc --noEmit"
+  },
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "plugins": [
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            "logseq-tabsdb-plugin.zip"
+          ]
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "@logseq/libs": "^0.3.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.11",
+    "husky": "^9.1.7",
+    "typescript": "^5.5.4",
+    "vite": "^7.3.0",
+    "vite-plugin-logseq": "^1.1.2",
+    "vite-tsconfig-paths": "^6.0.3"
+  }
+}
