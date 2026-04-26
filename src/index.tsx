@@ -21,6 +21,8 @@ import {
 } from './libs'
 
 const main = async () => {
+  logseq.UI.showMsg('logseq-tabsdb-plugin loaded')
+
   logseq.provideStyle(STYLE)
 
   const emptyState = (): State => ({ tabs: [], active: -1 })
