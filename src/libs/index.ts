@@ -1,6 +1,7 @@
 export * from './add-tab'
 export * from './create-ref'
 export * from './create-serial-queue'
+export * from './move-tab'
 export * from './reconcile-initial'
 export * from './reconcile-route'
 export * from './remove-tab'

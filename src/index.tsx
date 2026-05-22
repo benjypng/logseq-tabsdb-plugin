@@ -1,5 +1,5 @@
 import '@logseq/libs'
-import { State, Tab } from './types'
+
 import {
   BAR_SEL,
   BLOCK_ICON,
@@ -12,6 +12,7 @@ import {
 import {
   createRef,
   createSerialQueue,
+  moveTab,
   reconcileInitial,
   reconcileRoute,
   removeTab,
@@ -19,6 +20,7 @@ import {
   updateTab,
   validate,
 } from './libs'
+import { State, Tab } from './types'
 
 const main = async () => {
   logseq.UI.showMsg('logseq-tabsdb-plugin loaded')
@@ -39,6 +41,7 @@ const main = async () => {
   const stateRef = createRef<State>(loadState(initialGraph))
   const expectedSelfNavRef = createRef<string | null>(null)
   const openAsNewTabRef = createRef(false)
+  const dragSourceIndexRef = createRef<number | null>(null)
 
   const transaction = createSerialQueue()
 
@@ -113,10 +116,10 @@ const main = async () => {
                 ${state.tabs
                   .map(
                     (tab, index) => `
-                  <div class="ls-tab ${index === state.active ? 'active' : ''}" data-on-click="activateTabModel" data-idx="${index}">
-                    <span class="ls-tab-icon">${tab.isBlock ? BLOCK_ICON : PAGE_ICON}</span>
-                    <span class="page-title">${escapeHtml(tab.fullTitle || tab.title || '')}</span>
-                    <span class="ls-tab-close" data-on-click="closeTabModel" data-idx="${index}">×</span>
+                  <div class="ls-tab ${index === state.active ? 'active' : ''}" draggable="true" data-on-click="activateTabModel" data-idx="${index}">
+                    <span class="ls-tab-icon" draggable="false">${tab.isBlock ? BLOCK_ICON : PAGE_ICON}</span>
+                    <span class="page-title" draggable="false">${escapeHtml(tab.fullTitle || tab.title || '')}</span>
+                    <span class="ls-tab-close" draggable="false" data-on-click="closeTabModel" data-idx="${index}">×</span>
                   </div>`,
                   )
                   .join('')}
@@ -173,6 +176,97 @@ const main = async () => {
     },
     true,
   )
+
+  const findTabElement = (
+    eventTarget: EventTarget | null,
+  ): HTMLElement | null =>
+    (eventTarget as HTMLElement | null)?.closest?.(
+      '#ls-tabs-section .ls-tab',
+    ) as HTMLElement | null
+
+  const clearDropIndicators = () => {
+    const indicated = top!.document.querySelectorAll(
+      '#ls-tabs-section .ls-tab.drop-before, #ls-tabs-section .ls-tab.drop-after',
+    )
+    indicated.forEach((element) => {
+      element.classList.remove('drop-before')
+      element.classList.remove('drop-after')
+    })
+  }
+
+  const computeInsertIndex = (
+    tabElement: HTMLElement,
+    clientY: number,
+  ): number => {
+    const targetIndex = parseInt(tabElement.dataset.idx || '', 10)
+    if (isNaN(targetIndex)) return -1
+    const rect = tabElement.getBoundingClientRect()
+    const isLowerHalf = clientY > rect.top + rect.height / 2
+    return isLowerHalf ? targetIndex + 1 : targetIndex
+  }
+
+  top!.document.addEventListener('dragstart', (event) => {
+    const tabElement = findTabElement(event.target)
+    if (!tabElement) return
+    const sourceIndex = parseInt(tabElement.dataset.idx || '', 10)
+    if (isNaN(sourceIndex)) return
+    dragSourceIndexRef.set(sourceIndex)
+    tabElement.classList.add('dragging')
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', String(sourceIndex))
+    }
+  })
+
+  top!.document.addEventListener('dragover', (event) => {
+    if (dragSourceIndexRef.get() === null) return
+    const tabElement = findTabElement(event.target)
+    if (!tabElement) return
+    event.preventDefault()
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+    const insertIndex = computeInsertIndex(tabElement, event.clientY)
+    const sourceIndex = dragSourceIndexRef.get()!
+    clearDropIndicators()
+    if (insertIndex === sourceIndex || insertIndex === sourceIndex + 1) return
+    const targetIndex = parseInt(tabElement.dataset.idx || '', 10)
+    tabElement.classList.add(
+      insertIndex > targetIndex ? 'drop-after' : 'drop-before',
+    )
+  })
+
+  top!.document.addEventListener('dragleave', (event) => {
+    const tabElement = findTabElement(event.target)
+    if (!tabElement) return
+    const related = event.relatedTarget as HTMLElement | null
+    if (related && tabElement.contains(related)) return
+    tabElement.classList.remove('drop-before')
+    tabElement.classList.remove('drop-after')
+  })
+
+  top!.document.addEventListener('drop', (event) => {
+    const sourceIndex = dragSourceIndexRef.get()
+    if (sourceIndex === null) return
+    const tabElement = findTabElement(event.target)
+    if (!tabElement) return
+    event.preventDefault()
+    const insertIndex = computeInsertIndex(tabElement, event.clientY)
+    clearDropIndicators()
+    dragSourceIndexRef.set(null)
+    if (insertIndex < 0) return
+    transaction(async () => {
+      const nextState = moveTab(stateRef.get(), sourceIndex, insertIndex)
+      await commit(nextState)
+    })
+  })
+
+  top!.document.addEventListener('dragend', () => {
+    dragSourceIndexRef.set(null)
+    clearDropIndicators()
+    const dragging = top!.document.querySelectorAll(
+      '#ls-tabs-section .ls-tab.dragging',
+    )
+    dragging.forEach((element) => element.classList.remove('dragging'))
+  })
 
   logseq.provideModel({
     activateTabModel(event: any) {

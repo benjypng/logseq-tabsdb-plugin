@@ -49,4 +49,11 @@ export const STYLE = `
         font-size: 16px; line-height: 1; padding: 0 4px;
       }
       #ls-tabs-section .ls-tab-new:hover { opacity: 1; }
+      #ls-tabs-section .ls-tab.dragging { opacity: 0.3; }
+      #ls-tabs-section .ls-tab.drop-before {
+        box-shadow: inset 0 2px 0 0 var(--ls-link-text-color, #2563eb);
+      }
+      #ls-tabs-section .ls-tab.drop-after {
+        box-shadow: inset 0 -2px 0 0 var(--ls-link-text-color, #2563eb);
+      }
 `
