@@ -268,6 +268,12 @@ const main = async () => {
     dragging.forEach((element) => element.classList.remove('dragging'))
   })
 
+  const openNewTab = async () => {
+    openAsNewTabRef.set(true)
+    setTimeout(() => openAsNewTabRef.set(false), 30000)
+    await logseq.App.invokeExternalCommand('logseq.go/search')
+  }
+
   logseq.provideModel({
     activateTabModel(event: any) {
       const index = parseInt(event.dataset.idx, 10)
@@ -278,11 +284,23 @@ const main = async () => {
       if (!isNaN(index)) closeTab(index)
     },
     async newTabModel() {
-      openAsNewTabRef.set(true)
-      setTimeout(() => openAsNewTabRef.set(false), 30000)
-      await logseq.App.invokeExternalCommand('logseq.go/search')
+      await openNewTab()
     },
   })
+
+  logseq.App.registerCommandPalette(
+    {
+      key: 'logseq-tabsdb-plugin-new-tab',
+      label: 'logseq-tabsdb-plugin: New Tab',
+      keybinding: {
+        mode: 'global',
+        binding: 'mod+t',
+      },
+    },
+    async () => {
+      await openNewTab()
+    },
+  )
 
   const tabFromEntity = (entity: any): Tab | null => {
     if (!entity) return null
