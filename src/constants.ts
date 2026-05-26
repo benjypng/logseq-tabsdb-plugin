@@ -2,6 +2,8 @@ export const PAGE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" hei
 
 export const BLOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>`
 
+export const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v6l-2 4v2h10v-2l-2 -4v-6"/><path d="M12 16l0 5"/><path d="M8 4l8 0"/></svg>`
+
 export const GRAPHS_KEY = 'graphs'
 
 export const STATE_KEY = 'tabsState'
@@ -34,14 +36,22 @@ export const STYLE = `
         flex: 1; min-width: 0;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       }
-      #ls-tabs-section .ls-tab .ls-tab-close { flex-shrink: 0; margin-left: auto; }
+      #ls-tabs-section .ls-tab .ls-tab-actions {
+        flex-shrink: 0; margin-left: auto;
+        display: inline-flex; align-items: center; gap: 2px;
+      }
       #ls-tabs-section .ls-tab:hover { opacity: 0.85; }
       #ls-tabs-section .ls-tab.active { opacity: 1; }
-      #ls-tabs-section .ls-tab-close {
+      #ls-tabs-section .ls-tab-close,
+      #ls-tabs-section .ls-tab-pin {
         opacity: 0; padding: 0 4px; border-radius: 3px;
+        display: inline-flex; align-items: center;
       }
-      #ls-tabs-section .ls-tab:hover .ls-tab-close { opacity: 0.5; }
-      #ls-tabs-section .ls-tab-close:hover {
+      #ls-tabs-section .ls-tab:hover .ls-tab-close,
+      #ls-tabs-section .ls-tab:hover .ls-tab-pin { opacity: 0.5; }
+      #ls-tabs-section .ls-tab.pinned .ls-tab-pin { opacity: 0.85; }
+      #ls-tabs-section .ls-tab-close:hover,
+      #ls-tabs-section .ls-tab-pin:hover {
         opacity: 1 !important; background: var(--ls-quaternary-background-color);
       }
       #ls-tabs-section .ls-tab-new {

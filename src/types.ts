@@ -3,6 +3,7 @@ export interface Tab {
   fullTitle?: string
   title?: string
   isBlock?: boolean
+  pinned?: boolean
   scroll: number
   cursor?: any
 }

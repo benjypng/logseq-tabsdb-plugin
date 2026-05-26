@@ -11,6 +11,9 @@ export const moveTab = (
   const activeTab = state.tabs[state.active]
   const movedTab = state.tabs[fromIndex]
   if (!movedTab) return state
+  const pinnedCount = state.tabs.filter((tab) => tab.pinned).length
+  if (movedTab.pinned && insertIndex > pinnedCount) return state
+  if (!movedTab.pinned && insertIndex < pinnedCount) return state
   const tabs = [...state.tabs]
   tabs.splice(fromIndex, 1)
   const adjustedInsertIndex =

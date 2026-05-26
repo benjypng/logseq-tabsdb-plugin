@@ -5,6 +5,7 @@ import {
   BLOCK_ICON,
   GRAPHS_KEY,
   PAGE_ICON,
+  PIN_ICON,
   SCROLL_SEL,
   STATE_KEY,
   STYLE,
@@ -17,6 +18,7 @@ import {
   reconcileRoute,
   removeTab,
   setActive,
+  togglePin,
   updateTab,
   validate,
 } from './libs'
@@ -116,10 +118,13 @@ const main = async () => {
                 ${state.tabs
                   .map(
                     (tab, index) => `
-                  <div class="ls-tab ${index === state.active ? 'active' : ''}" draggable="true" data-on-click="activateTabModel" data-idx="${index}">
+                  <div class="ls-tab ${index === state.active ? 'active' : ''} ${tab.pinned ? 'pinned' : ''}" draggable="true" data-on-click="activateTabModel" data-idx="${index}">
                     <span class="ls-tab-icon" draggable="false">${tab.isBlock ? BLOCK_ICON : PAGE_ICON}</span>
                     <span class="page-title" draggable="false">${escapeHtml(tab.fullTitle || tab.title || '')}</span>
-                    <span class="ls-tab-close" draggable="false" data-on-click="closeTabModel" data-idx="${index}">×</span>
+                    <span class="ls-tab-actions" draggable="false">
+                      <span class="ls-tab-pin" draggable="false" title="${tab.pinned ? 'Unpin tab' : 'Pin tab'}" data-on-click="togglePinModel" data-idx="${index}">${PIN_ICON}</span>
+                      <span class="ls-tab-close" draggable="false" title="Close tab" data-on-click="closeTabModel" data-idx="${index}">×</span>
+                    </span>
                   </div>`,
                   )
                   .join('')}
@@ -160,6 +165,11 @@ const main = async () => {
       await commit(nextState)
       const nextActiveTab = nextState.tabs[nextState.active]
       if (wasActive && nextActiveTab) await navigate(nextActiveTab.name)
+    })
+
+  const togglePinTab = (index: number) =>
+    transaction(async () => {
+      await commit(togglePin(stateRef.get(), index))
     })
 
   top!.document.addEventListener(
@@ -218,6 +228,19 @@ const main = async () => {
     }
   })
 
+  const wouldCrossPinnedBoundary = (
+    sourceIndex: number,
+    insertIndex: number,
+  ): boolean => {
+    const tabs = stateRef.get().tabs
+    const movedTab = tabs[sourceIndex]
+    if (!movedTab) return false
+    const pinnedCount = tabs.filter((tab) => tab.pinned).length
+    if (movedTab.pinned && insertIndex > pinnedCount) return true
+    if (!movedTab.pinned && insertIndex < pinnedCount) return true
+    return false
+  }
+
   top!.document.addEventListener('dragover', (event) => {
     if (dragSourceIndexRef.get() === null) return
     const tabElement = findTabElement(event.target)
@@ -228,6 +251,7 @@ const main = async () => {
     const sourceIndex = dragSourceIndexRef.get()!
     clearDropIndicators()
     if (insertIndex === sourceIndex || insertIndex === sourceIndex + 1) return
+    if (wouldCrossPinnedBoundary(sourceIndex, insertIndex)) return
     const targetIndex = parseInt(tabElement.dataset.idx || '', 10)
     tabElement.classList.add(
       insertIndex > targetIndex ? 'drop-after' : 'drop-before',
@@ -282,6 +306,10 @@ const main = async () => {
     closeTabModel(event: any) {
       const index = parseInt(event.dataset.idx, 10)
       if (!isNaN(index)) closeTab(index)
+    },
+    togglePinModel(event: any) {
+      const index = parseInt(event.dataset.idx, 10)
+      if (!isNaN(index)) togglePinTab(index)
     },
     async newTabModel() {
       await openNewTab()
