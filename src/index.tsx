@@ -373,6 +373,7 @@ const main = async () => {
     )
     openAsNewTabRef.set(false)
     await commit(nextState)
+    render()
   }
 
   logseq.App.onRouteChanged(() => transaction(handleRouteChange))

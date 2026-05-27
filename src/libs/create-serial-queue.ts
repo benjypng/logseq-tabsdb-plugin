@@ -5,9 +5,9 @@ export const createSerialQueue = () => {
   return <Result>(task: () => Promise<Result>): Promise<Result> => {
     const result = tail
       .get()
-      .catch(() => {})
+      .catch(() => undefined)
       .then(task)
-    tail.set(result.catch(() => {}))
+    tail.set(result.catch(() => undefined))
     return result
   }
 }
