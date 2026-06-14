@@ -380,6 +380,35 @@ const main = async () => {
     dragging.forEach((element) => element.classList.remove('dragging'))
   })
 
+  const tooltip = top!.document.createElement('div')
+  tooltip.className = 'ls-tab-tooltip'
+  top!.document.body.appendChild(tooltip)
+
+  const showTabTooltip = (tabElement: HTMLElement) => {
+    const title =
+      tabElement.querySelector('.page-title')?.textContent?.trim() || ''
+    if (!title) return
+    tooltip.textContent = title
+    const rect = tabElement.getBoundingClientRect()
+    const left = Math.min(rect.left, top!.window.innerWidth - 360 - 8)
+    tooltip.style.left = `${Math.max(8, left)}px`
+    tooltip.style.top = `${rect.bottom + 4}px`
+    tooltip.classList.add('visible')
+  }
+
+  top!.document.addEventListener('mouseover', (event) => {
+    const tabElement = findTabElement(event.target)
+    if (tabElement) showTabTooltip(tabElement)
+  })
+
+  top!.document.addEventListener('mouseout', (event) => {
+    const tabElement = findTabElement(event.target)
+    if (!tabElement) return
+    const related = event.relatedTarget as HTMLElement | null
+    if (related && tabElement.contains(related)) return
+    tooltip.classList.remove('visible')
+  })
+
   const openNewTab = async () => {
     openAsNewTabRef.set(true)
     setTimeout(() => openAsNewTabRef.set(false), 30000)

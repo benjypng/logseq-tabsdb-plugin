@@ -41,6 +41,21 @@ export const STYLE = `
       #ls-tabs-bar.ls-tabs-horizontal .ls-tab {
         flex: 0 1 auto; min-width: 80px; max-width: 200px;
       }
+      .ls-tab-tooltip {
+        position: fixed;
+        z-index: 99999;
+        max-width: 360px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        padding: 4px 8px; border-radius: 4px;
+        background: var(--ls-secondary-background-color, #2d2d2d);
+        color: var(--ls-primary-text-color);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        font-size: 12px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.1s ease;
+      }
+      .ls-tab-tooltip.visible { opacity: 1; }
       #ls-tabs-bar.ls-tabs-horizontal .ls-tab.active {
         background: var(--ls-tertiary-background-color);
       }
@@ -52,6 +67,7 @@ export const STYLE = `
         display: flex; align-items: center; gap: 6px;
         padding: 4px 8px; border-radius: 4px;
         color: var(--ls-primary-text-color);
+        font-size: calc(1em - 2px);
         cursor: pointer;
         opacity: 0.55;
         transition: opacity 0.1s ease;
