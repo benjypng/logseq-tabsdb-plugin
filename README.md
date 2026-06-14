@@ -6,7 +6,8 @@
 ---
 
 ## ✨ Features
-* **Tabbed Navigation:** A vertical Tabs section in the left sidebar (between Favorites and Recent) that lets you keep multiple pages and blocks open simultaneously.
+* **Tabbed Navigation:** Keep multiple pages and blocks open simultaneously. By default tabs appear as a vertical section in the left sidebar (between Favorites and Recent).
+* **Vertical or Horizontal Layout:** Choose where tabs live in **Settings → Tab layout**. *Vertical* (default) is the left-sidebar list; *horizontal* is a bar across the top, between the header and the main content. When tabs outgrow the bar they shrink to fit, then scroll.
 * **Pages and Blocks:** Both page references and block references can live in tabs, with distinct icons so you can tell them apart at a glance.
 * **Cmd/Ctrl-Click to Open in New Tab:** Hold `Cmd` (macOS) or `Ctrl` (Windows/Linux) and click any page or block reference to open it in a fresh tab instead of replacing the current one.
 * **Per-Graph Persistence:** Tabs are stored per graph, so switching between vaults doesn't mix your open tabs together.
@@ -37,6 +38,11 @@ TBA.
 1.  Click any tab to activate it.
 2.  Hover a tab to reveal the `×` close button on the right.
 3.  Closing the active tab falls back to the next tab in the list.
+
+#### Tab Layout
+1.  Open **Settings** for the plugin and set **Tab layout** to `vertical` or `horizontal`.
+2.  `vertical` shows tabs in the left sidebar; `horizontal` shows them in a full-width bar between the header and the main content.
+3.  The change applies immediately — no reload required. Pin, drag-to-reorder, and close all work the same in both layouts.
 
 #### Per-Graph State
 1.  Tab state is stored under `settings.graphs[<graphName>].tabsState`.

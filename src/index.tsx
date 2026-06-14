@@ -4,9 +4,11 @@ import {
   BAR_SEL,
   BLOCK_ICON,
   GRAPHS_KEY,
+  LEFT_CONTAINER_SEL,
   PAGE_ICON,
   PIN_ICON,
   SCROLL_SEL,
+  SETTING_LAYOUT_KEY,
   STATE_KEY,
   STYLE,
 } from './constants'
@@ -28,6 +30,24 @@ const main = async () => {
   logseq.UI.showMsg('logseq-tabsdb-plugin loaded')
 
   logseq.provideStyle(STYLE)
+
+  logseq.useSettingsSchema([
+    {
+      key: SETTING_LAYOUT_KEY,
+      type: 'enum',
+      default: 'vertical',
+      title: 'Tab layout',
+      description:
+        'Where to show tabs: a vertical list in the left sidebar, or a horizontal bar across the top (between the header and main content).',
+      enumChoices: ['vertical', 'horizontal'],
+      enumPicker: 'radio',
+    },
+  ])
+
+  const getLayout = (): 'vertical' | 'horizontal' =>
+    logseq.settings?.[SETTING_LAYOUT_KEY] === 'horizontal'
+      ? 'horizontal'
+      : 'vertical'
 
   const emptyState = (): State => ({ tabs: [], active: -1 })
 
@@ -104,10 +124,18 @@ const main = async () => {
     }, 50)
   }
 
-  const render = () => {
-    const state = stateRef.get()
-    const html = `
-        <div id="ls-tabs-section" class="sidebar-content-group is-expand">
+  const tabItemHtml = (tab: Tab, index: number, active: number) => `
+                  <div class="ls-tab ${index === active ? 'active' : ''} ${tab.pinned ? 'pinned' : ''}" draggable="true" data-on-click="activateTabModel" data-idx="${index}">
+                    <span class="ls-tab-icon" draggable="false">${tab.isBlock ? BLOCK_ICON : PAGE_ICON}</span>
+                    <span class="page-title" draggable="false">${escapeHtml(tab.fullTitle || tab.title || '')}</span>
+                    <span class="ls-tab-actions" draggable="false">
+                      <span class="ls-tab-pin" draggable="false" title="${tab.pinned ? 'Unpin tab' : 'Pin tab'}" data-on-click="togglePinModel" data-idx="${index}">${PIN_ICON}</span>
+                      <span class="ls-tab-close" draggable="false" title="Close tab" data-on-click="closeTabModel" data-idx="${index}">×</span>
+                    </span>
+                  </div>`
+
+  const renderVertical = (state: State) => `
+        <div id="ls-tabs-section" class="ls-tabs-root sidebar-content-group is-expand">
           <div class="sidebar-content-group-inner">
             <div class="hd items-center non-collapsable">
               <span class="a"><a class="wrap-th"><strong class="flex-1">Tabs</strong></a></span>
@@ -115,30 +143,51 @@ const main = async () => {
             </div>
             <div class="bd">
               <div class="ls-tabs-list">
-                ${state.tabs
-                  .map(
-                    (tab, index) => `
-                  <div class="ls-tab ${index === state.active ? 'active' : ''} ${tab.pinned ? 'pinned' : ''}" draggable="true" data-on-click="activateTabModel" data-idx="${index}">
-                    <span class="ls-tab-icon" draggable="false">${tab.isBlock ? BLOCK_ICON : PAGE_ICON}</span>
-                    <span class="page-title" draggable="false">${escapeHtml(tab.fullTitle || tab.title || '')}</span>
-                    <span class="ls-tab-actions" draggable="false">
-                      <span class="ls-tab-pin" draggable="false" title="${tab.pinned ? 'Unpin tab' : 'Pin tab'}" data-on-click="togglePinModel" data-idx="${index}">${PIN_ICON}</span>
-                      <span class="ls-tab-close" draggable="false" title="Close tab" data-on-click="closeTabModel" data-idx="${index}">×</span>
-                    </span>
-                  </div>`,
-                  )
-                  .join('')}
+                ${state.tabs.map((tab, index) => tabItemHtml(tab, index, state.active)).join('')}
               </div>
             </div>
           </div>
         </div>
       `
-    logseq.provideUI({
-      key: 'ls-tabs-section',
-      path: BAR_SEL,
-      template: html,
-      replace: true,
-    } as any)
+
+  const renderHorizontal = (state: State) => `
+        <div id="ls-tabs-bar" class="ls-tabs-root ls-tabs-horizontal">
+          <div class="ls-tabs-list">
+            ${state.tabs.map((tab, index) => tabItemHtml(tab, index, state.active)).join('')}
+          </div>
+          <a class="ls-tab-new" title="New tab" data-on-click="newTabModel">+</a>
+        </div>
+      `
+
+  const render = () => {
+    const state = stateRef.get()
+    if (getLayout() === 'horizontal') {
+      logseq.provideUI({
+        key: 'ls-tabs-section',
+        path: BAR_SEL,
+        template: '',
+        replace: true,
+      } as any)
+      logseq.provideUI({
+        key: 'ls-tabs-bar',
+        path: LEFT_CONTAINER_SEL,
+        template: renderHorizontal(state),
+        replace: true,
+      } as any)
+    } else {
+      logseq.provideUI({
+        key: 'ls-tabs-bar',
+        path: LEFT_CONTAINER_SEL,
+        template: '',
+        replace: true,
+      } as any)
+      logseq.provideUI({
+        key: 'ls-tabs-section',
+        path: BAR_SEL,
+        template: renderVertical(state),
+        replace: true,
+      } as any)
+    }
   }
 
   const navigate = async (name: string) => {
@@ -191,12 +240,12 @@ const main = async () => {
     eventTarget: EventTarget | null,
   ): HTMLElement | null =>
     (eventTarget as HTMLElement | null)?.closest?.(
-      '#ls-tabs-section .ls-tab',
+      '.ls-tabs-root .ls-tab',
     ) as HTMLElement | null
 
   const clearDropIndicators = () => {
     const indicated = top!.document.querySelectorAll(
-      '#ls-tabs-section .ls-tab.drop-before, #ls-tabs-section .ls-tab.drop-after',
+      '.ls-tabs-root .ls-tab.drop-before, .ls-tabs-root .ls-tab.drop-after',
     )
     indicated.forEach((element) => {
       element.classList.remove('drop-before')
@@ -206,13 +255,16 @@ const main = async () => {
 
   const computeInsertIndex = (
     tabElement: HTMLElement,
-    clientY: number,
+    event: DragEvent,
   ): number => {
     const targetIndex = parseInt(tabElement.dataset.idx || '', 10)
     if (isNaN(targetIndex)) return -1
     const rect = tabElement.getBoundingClientRect()
-    const isLowerHalf = clientY > rect.top + rect.height / 2
-    return isLowerHalf ? targetIndex + 1 : targetIndex
+    const isAfter =
+      getLayout() === 'horizontal'
+        ? event.clientX > rect.left + rect.width / 2
+        : event.clientY > rect.top + rect.height / 2
+    return isAfter ? targetIndex + 1 : targetIndex
   }
 
   top!.document.addEventListener('dragstart', (event) => {
@@ -247,7 +299,7 @@ const main = async () => {
     if (!tabElement) return
     event.preventDefault()
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
-    const insertIndex = computeInsertIndex(tabElement, event.clientY)
+    const insertIndex = computeInsertIndex(tabElement, event)
     const sourceIndex = dragSourceIndexRef.get()!
     clearDropIndicators()
     if (insertIndex === sourceIndex || insertIndex === sourceIndex + 1) return
@@ -273,7 +325,7 @@ const main = async () => {
     const tabElement = findTabElement(event.target)
     if (!tabElement) return
     event.preventDefault()
-    const insertIndex = computeInsertIndex(tabElement, event.clientY)
+    const insertIndex = computeInsertIndex(tabElement, event)
     clearDropIndicators()
     dragSourceIndexRef.set(null)
     if (insertIndex < 0) return
@@ -287,7 +339,7 @@ const main = async () => {
     dragSourceIndexRef.set(null)
     clearDropIndicators()
     const dragging = top!.document.querySelectorAll(
-      '#ls-tabs-section .ls-tab.dragging',
+      '.ls-tabs-root .ls-tab.dragging',
     )
     dragging.forEach((element) => element.classList.remove('dragging'))
   })
@@ -397,6 +449,10 @@ const main = async () => {
       render()
     }),
   )
+
+  logseq.onSettingsChanged((next: any, prev: any) => {
+    if (next?.[SETTING_LAYOUT_KEY] !== prev?.[SETTING_LAYOUT_KEY]) render()
+  })
 
   await transaction(async () => {
     await reconcileCurrentPage()
