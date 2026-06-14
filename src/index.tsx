@@ -159,6 +159,41 @@ const main = async () => {
         </div>
       `
 
+  const placeHorizontalBar = () => {
+    const doc = top!.document
+    const inner = doc.getElementById('ls-tabs-bar')
+    const wrapper = inner?.closest('[data-injected-ui]') as HTMLElement | null
+    const main = doc.getElementById('main-container')
+    if (!wrapper || !main || !main.parentElement) return
+    if (wrapper.nextElementSibling !== main)
+      main.parentElement.insertBefore(wrapper, main)
+    updateLeftOffset()
+  }
+
+  const updateLeftOffset = () => {
+    const doc = top!.document
+    const inner = doc.getElementById('ls-tabs-bar')
+    if (!inner) return
+    const main = doc.getElementById('main-container')
+    const sidebar = doc.getElementById('left-sidebar')
+    const open = !!main?.classList.contains('is-left-sidebar-open')
+    const width = open && sidebar ? sidebar.offsetWidth : 0
+    inner.style.setProperty('--ls-tabs-left-offset', `${width}px`)
+  }
+
+  const scheduleHorizontalPlacement = () => {
+    let tries = 0
+    const tick = () => {
+      if (getLayout() !== 'horizontal') return
+      if (top!.document.getElementById('ls-tabs-bar')) {
+        placeHorizontalBar()
+        return
+      }
+      if (tries++ < 30) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }
+
   const render = () => {
     const state = stateRef.get()
     if (getLayout() === 'horizontal') {
@@ -174,6 +209,7 @@ const main = async () => {
         template: renderHorizontal(state),
         replace: true,
       } as any)
+      scheduleHorizontalPlacement()
     } else {
       logseq.provideUI({
         key: 'ls-tabs-bar',
@@ -453,6 +489,27 @@ const main = async () => {
   logseq.onSettingsChanged((next: any, prev: any) => {
     if (next?.[SETTING_LAYOUT_KEY] !== prev?.[SETTING_LAYOUT_KEY]) render()
   })
+
+  const leftContainer = top!.document.querySelector(LEFT_CONTAINER_SEL)
+  if (leftContainer) {
+    new MutationObserver(() => {
+      if (getLayout() === 'horizontal') placeHorizontalBar()
+    }).observe(leftContainer, { childList: true })
+  }
+
+  const mainContainer = top!.document.getElementById('main-container')
+  if (mainContainer) {
+    new MutationObserver(() => {
+      if (getLayout() === 'horizontal') updateLeftOffset()
+    }).observe(mainContainer, { attributes: true, attributeFilter: ['class'] })
+  }
+
+  const leftSidebar = top!.document.getElementById('left-sidebar')
+  if (leftSidebar) {
+    new ResizeObserver(() => {
+      if (getLayout() === 'horizontal') updateLeftOffset()
+    }).observe(leftSidebar)
+  }
 
   await transaction(async () => {
     await reconcileCurrentPage()

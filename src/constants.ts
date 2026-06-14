@@ -25,13 +25,10 @@ export const STYLE = `
         user-select: none;
       }
 
-      #left-container { display: flex; flex-direction: column; }
-      #head { order: 1; }
-      #ls-tabs-bar { order: 2; }
-      #main-container { order: 3; }
       #ls-tabs-bar.ls-tabs-horizontal {
         display: flex; align-items: stretch; gap: 4px;
-        padding: 4px 8px;
+        padding: 4px 8px 4px calc(8px + var(--ls-tabs-left-offset, 0px));
+        transition: padding-left 0.2s ease;
         border-bottom: 1px solid var(--ls-border-color, rgba(0, 0, 0, 0.07));
         background: var(--ls-secondary-background-color, transparent);
         user-select: none;
